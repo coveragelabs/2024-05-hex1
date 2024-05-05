@@ -1,7 +1,7 @@
 # Hex One Protocol Security Review Details
 
 ## Executive Summary
-Coverage reviewed Hex One Protocol smart contracts over the course of a 5 week engagement with three engineers. The review was conducted from 2024-05-06 to 2024-05-31.
+Coverage reviewed Hex One Protocol smart contracts over the course of a 4 week engagement with three engineers. The review was conducted from 2024-05-06 to 2024-05-31.
 
 ### People Involved
 | Name                      | Role                      | Contact                   |
