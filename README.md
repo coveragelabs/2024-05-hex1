@@ -1,64 +1,30 @@
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-```
-  _  _      ___    __  __      _    
- | || |    | __|   \ \/ /     / |   
- | __ |    | _|     >  <      | |   
- |_||_|    |___|   /_/\_\    _|_|_  
-_|"""""| _|"""""| _|"""""| _|"""""| 
-"`-0-0-' "`-0-0-' "`-0-0-' "`-0-0-' 
-```
-# Hex One Protocol
-This repository contains the smart contracts source code for Hex One Protocol. The repository uses Foundry as a development enviroment for compilation, testing and deployment tasks.
+# Hex One Protocol Security Review Details
 
-## What is Hex One Protocol?
-A yield-bearing stablecoin backed by HEX T-shares. 1 $HEX1 = $1 worth of HEX.
+## Executive Summary
 
-## Usage
-### Setup
-Clone with recurse:
-```
-git clone https://github.com/HexOneProtocol/hex1-contracts.git --recurse
-```
+### People Involved
+| Name                      | Role                      | Contact                   |
+|---------------------------|---------------------------|---------------------------|
+| José Garção               | Lead Security Researcher  | garcao.random@gmail.com   |
+| Rafael Nicolau            | Security Researcher       | 0xrafaelnicolau@gmail.com |
+| nexusflip                 | Security Researcher       | 0xnexusflip@gmail.com     |
 
-Alternatively, if you have already cloned without recurse, do:
+### Application Summary
+| Name            | Repository                                                | Language | Platform   |
+|-----------------|-----------------------------------------------------------|----------|------------|
+| Hex One Protocol | https://github.com/HexOneProtocol/hex1-contracts         | Solidity | Pulsechain |
 
-```
-git submodule update --init --recursive
-```
+### Code Scope Version Control
+- **Review commit hash - [45514b8](https://github.com/coveragelabs/2024-05-hex1/tree/45514b8a25a24679dffbe99db3e41196c06a2427).**
 
-### Quickstart
-Install Foundry to get started:
-```
-curl -L https://foundry.paradigm.xyz | bash
-foundryup
-```
+- **Fix review commit hash - [\<commit hash of the fix review>](link-to-the-commit).**
 
-Install all dependencies:
-```
-forge install
-```
-
-### Tests
-```
-forge test -vvv
-```
-
-Run tests with gas report:
-
-```
-forge test --gas-report
-```
-
-### Coverage
-```
-forge coverage
-```
-
-Detailed coverage report:
-
-```
-forge coverage --report debug
-```
-
-## Audits
-- Coverage (29-01-2024 - 06-03-2024): [report](https://github.com/HexOneProtocol/hex1-contracts/files/14516700/hex1-security-review.pdf).
+### Scope
+The following smart contracts were within review scope:
+* `src/HexOneBootstrap.sol`
+* `src/HexOnePool.sol`
+* `src/HexOnePoolManager.sol`
+* `src/HexOnePriceFeed.sol`
+* `src/HexOneToken.sol`
+* `src/HexOneVault.sol`
+* `src/HexitToken.sol`
