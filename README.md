@@ -16,7 +16,7 @@ Coverage reviewed Hex One Protocol smart contracts over the course of a 4 week e
 | Hex One Protocol | https://github.com/HexOneProtocol/hex1-contracts         | Solidity | Pulsechain |
 
 ### Code Scope Version Control
-- **Review commit hash - [45514b8](https://github.com/coveragelabs/2024-05-hex1/tree/45514b8a25a24679dffbe99db3e41196c06a2427).**
+- **Review commit hash - [45514b8](https://github.com/HexOneProtocol/hex1-contracts/tree/45514b8a25a24679dffbe99db3e41196c06a2427).**
 
 - **Fix review commit hash - [\<commit hash of the fix review>](link-to-the-commit).**
 
