@@ -41,6 +41,8 @@ contract VaultAssert is Base {
 
     function test_constructor() external {
         assertEq(vault.feed(), address(feed));
+        assertTrue(vault.hex1() != address(0));
+        assertTrue(vault.hasRole(vault.BOOTSTRAP_ROLE(), owner));
     }
 
     function test_enableBuyback() external prank(owner) {
@@ -257,6 +259,6 @@ contract VaultAssert is Base {
     }
 
     function test_take() external {
-        // TODO : manipulate the pool to test this
+        // TODO : manipulate the oracle to test this
     }
 }
