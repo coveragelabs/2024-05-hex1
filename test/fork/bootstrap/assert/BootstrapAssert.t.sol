@@ -516,6 +516,48 @@ contract BootstrapAssert is Base {
         assertEq(IERC20(hex1).balanceOf(address(this)), hex1Minted);
     }
 
+    function test_airdropDay() external {
+        deal(HEX_TOKEN, address(this), 100_000e8);
+
+        IERC20(HEX_TOKEN).approve(address(bootstrap), 100_000e8);
+        bootstrap.sacrifice(HEX_TOKEN, 100_000e8, 0);
+
+        skip(30 days);
+
+        feed.update();
+
+        uint256 hexToSwap = (100_000e8 * 1250) / 10_000;
+
+        address[] memory path = new address[](2);
+        path[0] = HEX_TOKEN;
+        path[1] = DAI_TOKEN;
+        uint256[] memory amountsOut = IPulseXRouter(PULSEX_ROUTER_V1).getAmountsOut(hexToSwap, path);
+
+        vm.startPrank(owner);
+        bootstrap.processSacrifice(amountsOut[1]);
+        vm.stopPrank();
+
+        bootstrap.claimSacrifice();
+
+        skip(7 days);
+
+        IERC20(hexit).balanceOf(address(owner));
+
+        vm.startPrank(owner);
+        bootstrap.startAirdrop(uint64(block.timestamp));
+        vm.stopPrank();
+
+        assertEq(bootstrap.airdropDay(), 1);
+
+        skip(7 days);
+
+        assertEq(bootstrap.airdropDay(), 8);
+
+        skip(7 days);
+
+        assertEq(bootstrap.airdropDay(), 15);
+    }
+
     function test_startAirdrop() external {
         deal(HEX_TOKEN, address(this), 100_000e8);
 
@@ -689,10 +731,97 @@ contract BootstrapAssert is Base {
     }
 
     function test_claimAirdrop_onlyHexStakes() external {
-        // TODO
+        deal(HEX_TOKEN, address(this), 100_000e8);
+
+        IERC20(HEX_TOKEN).approve(address(bootstrap), 100_000e8);
+        bootstrap.sacrifice(HEX_TOKEN, 100_000e8, 0);
+
+        skip(30 days);
+
+        feed.update();
+
+        uint256 hexToSwap = (100_000e8 * 1250) / 10_000;
+
+        address[] memory path = new address[](2);
+        path[0] = HEX_TOKEN;
+        path[1] = DAI_TOKEN;
+        uint256[] memory amountsOut = IPulseXRouter(PULSEX_ROUTER_V1).getAmountsOut(hexToSwap, path);
+
+        vm.startPrank(owner);
+        bootstrap.processSacrifice(amountsOut[1]);
+        vm.stopPrank();
+
+        bootstrap.claimSacrifice();
+
+        skip(7 days);
+
+        feed.update();
+
+        vm.startPrank(owner);
+        bootstrap.startAirdrop(uint64(block.timestamp));
+        vm.stopPrank();
+
+        address hexStaker = makeAddr("hexStaker");
+
+        deal(HEX_TOKEN, hexStaker, 100_000e8);
+
+        vm.startPrank(hexStaker);
+        IHexToken(HEX_TOKEN).stakeStart(100_000e8, 5555);
+        bootstrap.claimAirdrop();
+        vm.stopPrank();
+
+        uint256 expectedHexit = feed.quote(HEX_TOKEN, 100_000e8, DAI_TOKEN);
+        expectedHexit = expectedHexit + (5_555_555 * 1e18);
+
+        assertEq(hexit.balanceOf(hexStaker), expectedHexit);
     }
 
     function test_claimAirdrop_hexStakesAndSacrificeParticipant() external {
-        // TODO
+        deal(HEX_TOKEN, address(this), 100_000e8);
+
+        IERC20(HEX_TOKEN).approve(address(bootstrap), 100_000e8);
+        bootstrap.sacrifice(HEX_TOKEN, 100_000e8, 0);
+
+        skip(30 days);
+
+        feed.update();
+
+        uint256 hexToSwap = (100_000e8 * 1250) / 10_000;
+
+        address[] memory path = new address[](2);
+        path[0] = HEX_TOKEN;
+        path[1] = DAI_TOKEN;
+        uint256[] memory amountsOut = IPulseXRouter(PULSEX_ROUTER_V1).getAmountsOut(hexToSwap, path);
+
+        vm.startPrank(owner);
+        bootstrap.processSacrifice(amountsOut[1]);
+        vm.stopPrank();
+
+        bootstrap.claimSacrifice();
+
+        skip(7 days);
+
+        feed.update();
+
+        vm.startPrank(owner);
+        bootstrap.startAirdrop(uint64(block.timestamp));
+        vm.stopPrank();
+
+        deal(HEX_TOKEN, address(this), 100_000e8);
+
+        uint256 hexitBefore = hexit.balanceOf(address(this));
+
+        IHexToken(HEX_TOKEN).stakeStart(100_000e8, 5555);
+        bootstrap.claimAirdrop();
+
+        (uint256 sacrificedUsd,,,) = bootstrap.userInfos(address(this));
+
+        uint256 expectedHexit = feed.quote(HEX_TOKEN, 100_000e8, DAI_TOKEN);
+        expectedHexit = expectedHexit + (5_555_555 * 1e18);
+        expectedHexit = expectedHexit + (9 * sacrificedUsd);
+
+        uint256 hexitAfter = hexit.balanceOf(address(this));
+
+        assertEq(hexitAfter - hexitBefore, expectedHexit);
     }
 }
