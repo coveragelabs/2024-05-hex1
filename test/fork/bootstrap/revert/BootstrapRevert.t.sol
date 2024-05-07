@@ -50,6 +50,32 @@ contract BootstrapRevert is Base {
         new HexOneBootstrap(uint64(block.timestamp), address(feed), address(hexit), tokens);
     }
 
+    function test_initVault_revert_AccessControlUnauthorizedAccount() external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), bootstrap.OWNER_ROLE()
+            )
+        );
+        bootstrap.initVault(address(vault));
+    }
+
+    function test_initVault_revert_VaultAlreadyInitialized() external {
+        vm.startPrank(owner);
+        vm.expectRevert(IHexOneBootstrap.VaultAlreadyInitialized.selector);
+        bootstrap.initVault(address(vault));
+        vm.stopPrank();
+    }
+
+    function test_initVault_revert_ZeroAddress() external {
+        address[] memory tokens = new address[](1);
+        tokens[0] = WPLS_TOKEN;
+        HexOneBootstrap newBootstrap =
+            new HexOneBootstrap(uint64(block.timestamp), address(feed), address(hexit), tokens);
+
+        vm.expectRevert(IHexOneVault.ZeroAddress.selector);
+        newBootstrap.initVault(address(0));
+    }
+
     function test_sacrificeDay_revert_SacrificeInactive() external {
         skip(30 days);
 
