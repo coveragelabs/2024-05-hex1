@@ -11,9 +11,14 @@ contract VaultRevert is Base {
         feed.update();
     }
 
-    function test_constructor_revert_ZeroAddress() external {
+    function test_constructor_revert_ZeroAddress_feed() external {
         vm.expectRevert(IHexOneVault.ZeroAddress.selector);
-        new HexOneVault(address(0));
+        new HexOneVault(address(0), address(bootstrap));
+    }
+
+    function test_constructor_revert_ZeroAddress_bootstrap() external {
+        vm.expectRevert(IHexOneVault.ZeroAddress.selector);
+        new HexOneVault(address(feed), address(0));
     }
 
     function test_enableBuyback_revert_AccessControlUnauthorizedAccount() external {

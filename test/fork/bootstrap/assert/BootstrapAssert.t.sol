@@ -23,6 +23,18 @@ contract BootstrapAssert is Base {
         assertEq(bootstrap.sacrificeDay(), 30);
     }
 
+    function test_initVault() external {
+        address[] memory tokens = new address[](1);
+        tokens[0] = WPLS_TOKEN;
+        HexOneBootstrap newBootstrap =
+            new HexOneBootstrap(uint64(block.timestamp), address(feed), address(hexit), tokens);
+
+        newBootstrap.initVault(address(vault));
+
+        assertEq(newBootstrap.vault(), address(vault));
+        assertEq(newBootstrap.initialized(), true);
+    }
+
     function test_sacrifice_hex_day1() external {
         deal(HEX_TOKEN, address(this), 10_000e8);
 
@@ -467,10 +479,10 @@ contract BootstrapAssert is Base {
         (,, uint256 remainingHx,) = bootstrap.sacrificeInfo();
         assertEq(remainingHx, expectedRemainingHx);
 
-        HexOneVault vault = bootstrap.vault();
-        assertTrue(address(vault) != address(0));
+        address vault = bootstrap.vault();
+        assertTrue(vault != address(0));
 
-        address pair = IPulseXFactory(PULSEX_FACTORY_V2).getPair(vault.hex1(), DAI_TOKEN);
+        address pair = IPulseXFactory(PULSEX_FACTORY_V2).getPair(IHexOneVault(vault).hex1(), DAI_TOKEN);
         assertTrue(pair != address(0));
     }
 
@@ -505,14 +517,14 @@ contract BootstrapAssert is Base {
         (,,, uint256 totalHexitMinted) = bootstrap.sacrificeInfo();
         assertEq(totalHexitMinted, hexitMinted);
 
-        HexOneVault vault = bootstrap.vault();
-        assertEq(vault.balanceOf(address(this)), 1);
-        assertEq(vault.ownerOf(tokenId), address(this));
+        address vault = bootstrap.vault();
+        assertEq(IERC721(vault).balanceOf(address(this)), 1);
+        assertEq(IERC721(vault).ownerOf(tokenId), address(this));
 
         uint256 hexitAfter = hexit.balanceOf(address(this));
         assertEq(hexitAfter - hexitBefore, hexitMinted);
 
-        address hex1 = vault.hex1();
+        address hex1 = IHexOneVault(vault).hex1();
         assertEq(IERC20(hex1).balanceOf(address(this)), hex1Minted);
     }
 
@@ -598,9 +610,6 @@ contract BootstrapAssert is Base {
 
         uint256 teamHexit = (6667 * hexitMinted) / 10_000;
         assertEq(hexitAfter - hexitBefore, teamHexit);
-
-        HexOneVault vault = bootstrap.vault();
-        assertEq(vault.buybackEnabled(), true);
     }
 
     function test_claimAirdrop_day1() external {
