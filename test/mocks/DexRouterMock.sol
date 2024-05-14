@@ -7,10 +7,10 @@ import "../mocks/ERC20Mock.sol";
 contract DexRouterMock {
     mapping(address => mapping(address => uint256)) rates; // base rate 10000
 
-    address hex1dai;
+    address poolAddress;
 
-    constructor(address _hex1dai) {
-        hex1dai = _hex1dai;
+    constructor(address _poolAddress) {
+        poolAddress = _poolAddress;
     }
 
     function setRate(address tokenIn, address tokenOut, uint256 r) public {
@@ -35,22 +35,22 @@ contract DexRouterMock {
     }
 
     function addLiquidity(
-        address hex1,
-        address dai,
-        uint256 hex1Amount,
-        uint256 daiAmount,
+        address tokenIn,
+        address tokenOut,
+        uint256 tokenInAmount,
+        uint256 tokenOutAmount,
         uint256,
         uint256,
         address,
         uint256
     ) external returns (uint256, uint256, uint256) {
-        ERC20Mock(hex1).transferFrom(msg.sender, address(this), hex1Amount);
-        ERC20Mock(dai).transferFrom(msg.sender, address(this), daiAmount);
-        ERC20Mock(hex1dai).mint(msg.sender, hex1Amount);
-        return (hex1Amount, daiAmount, hex1Amount);
+        ERC20Mock(tokenIn).transferFrom(msg.sender, address(this), tokenInAmount);
+        ERC20Mock(tokenOut).transferFrom(msg.sender, address(this), tokenOutAmount);
+        ERC20Mock(poolAddress).mint(msg.sender, tokenInAmount);
+        return (tokenInAmount, tokenOutAmount, tokenInAmount);
     }
 }
 
 // setRate() => change the exchange rate of swapExactTokensForTokens
 // swapExactTokensForTokens(_amountIn, _amountOutMin, path, address(this), deadline) => no slippage
-// addLiquidity(hexOneToken,daiToken,hexOneMinted,amountOut[1],hexOneMinted, amountOut[1], address(this), deadline); => do nothng
+// addLiquidity(hexOneToken,tokenOutToken,hexOneMinted,amountOut[1],hexOneMinted, amountOut[1], address(this), deadline); => do nothng
