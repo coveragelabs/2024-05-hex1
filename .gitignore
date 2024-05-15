@@ -12,3 +12,7 @@ out/
 
 # Node
 node_modules/
+
+# Echidna
+corpus/
+crytic-export/
