@@ -8,7 +8,7 @@ contract User {
         return target.call(data);
     }
 
-    function approveERC20(ERC20 target, address spender) public {
-        target.approve(spender, type(uint256).max);
+    function approve(address target, address spender) public {
+        ERC20(target).approve(spender, type(uint256).max);
     }
 }

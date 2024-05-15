@@ -1,3 +1,6 @@
+rpcUrl: https://rpc.pulsechain.com
+rpcBlock: 20194011
+
 seqLen: 10
 testLimit: 10000
 
