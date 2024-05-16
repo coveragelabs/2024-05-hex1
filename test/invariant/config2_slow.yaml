@@ -1,18 +1,12 @@
 rpcUrl: https://rpc.pulsechain.com
 rpcBlock: 20194011
 
+workers: 10
 seqLen: 150
 testLimit: 50000
-
-workers: 10
-coverage: true
-allowFFI: true
-corpusDir: "corpus"
-testMode: assertion
-deployer: "0x10000"
-sender: ["0x10000", "0x20000", "0x30000"]
-coverageFormats: ["txt"]
 shrinkLimit: 5000
+testMode: assertion
 
-maxTimeDelay: 157248000 # 5 year
-maxBlockDelay: 15724800 # 5 year
+coverage: true
+corpusDir: "corpus"
+coverageFormats: ["txt"]

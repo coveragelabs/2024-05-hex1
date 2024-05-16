@@ -1,15 +1,12 @@
 rpcUrl: https://rpc.pulsechain.com
 rpcBlock: 20194011
 
+workers: 32
 seqLen: 300
 testLimit: 1000000000
-
-workers: 32
-coverage: true
-allowFFI: true
-corpusDir: "corpus"
-testMode: assertion
-deployer: "0x10000"
-sender: ["0x10000", "0x20000", "0x30000"]
-coverageFormats: ["txt"]
 shrinkLimit: 6000
+testMode: assertion
+
+coverage: true
+corpusDir: "corpus"
+coverageFormats: ["txt"]
