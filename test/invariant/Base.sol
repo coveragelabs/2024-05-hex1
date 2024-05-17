@@ -15,6 +15,8 @@ import {HexOnePoolManager} from "../../src/HexOnePoolManager.sol";
 import {HexOnePool} from "../../src/HexOnePool.sol";
 
 import {IPulseXFactory} from "../../src/interfaces/pulsex/IPulseXFactory.sol";
+import {IPulseXRouter02 as IPulseXRouter} from "../../src/interfaces/pulsex/IPulseXRouter.sol";
+import {IPulseXPair} from "../../src/interfaces/pulsex/IPulseXPair.sol";
 import {IERC20} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 contract Base is PropertiesAsserts {
