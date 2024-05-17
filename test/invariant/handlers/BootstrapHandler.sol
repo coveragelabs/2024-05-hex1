@@ -32,10 +32,10 @@ contract BootstrapHandler is Base {
             IERC20(PLSX_TOKEN).transfer(address(users[i]), PLSX_AMOUNT);
 
             // approve vault to spend tokens
-            users[i].approve(HEX_TOKEN, address(vault));
-            users[i].approve(DAI_TOKEN, address(vault));
-            users[i].approve(WPLS_TOKEN, address(vault));
-            users[i].approve(PLSX_TOKEN, address(vault));
+            users[i].approve(HEX_TOKEN, address(bootstrap));
+            users[i].approve(DAI_TOKEN, address(bootstrap));
+            users[i].approve(WPLS_TOKEN, address(bootstrap));
+            users[i].approve(PLSX_TOKEN, address(bootstrap));
         }
     }
 
