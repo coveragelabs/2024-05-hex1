@@ -12,10 +12,15 @@ contract BootstrapHandler is Base {
 
     // amounts
     uint256 internal constant HEX_AMOUNT = 100_000_000e8;
-    uint256 internal constant DAI_AMOUNT = 1_000_000e18;
+    uint256 internal constant DAI_AMOUNT = 100_000_000e18;
     uint256 internal constant WPLS_AMOUNT = 10_000_000_000e18;
     uint256 internal constant PLSX_AMOUNT = 2_000_000_000e18;
+    uint256 internal constant TOKEN_AMOUNT = 1_000_000e18;
 
+    // users
+    mapping(User user => uint256[] tokenIds) userToTokenIds;
+    
+    // setup users
     constructor() {
         for (uint256 i; i < NUMBER_OF_USERS; ++i) {
             // deal tokens to users
@@ -31,25 +36,76 @@ contract BootstrapHandler is Base {
             hevm.prank(PLSX_WHALE);
             IERC20(PLSX_TOKEN).transfer(address(users[i]), PLSX_AMOUNT);
 
-            // approve vault to spend tokens
-            users[i].approve(HEX_TOKEN, address(vault));
-            users[i].approve(DAI_TOKEN, address(vault));
-            users[i].approve(WPLS_TOKEN, address(vault));
-            users[i].approve(PLSX_TOKEN, address(vault));
+            // approve bootstrap to spend tokens
+            users[i].approve(HEX_TOKEN, address(bootstrap));
+            users[i].approve(DAI_TOKEN, address(bootstrap));
+            users[i].approve(WPLS_TOKEN, address(bootstrap));
+            users[i].approve(PLSX_TOKEN, address(bootstrap));
         }
     }
 
-    function sacrifice() public {}
-
-    function processSacrifice() public {
-        // bootstrap.processSacrifice(_amountOutMin);
-    }
-
-    function claimSacrifice() public {}
-
+    // admin functions
     function startAirdrop() public {
         bootstrap.startAirdrop(uint64(block.timestamp));
     }
 
-    function claimAirdrop() public {}
+    function processSacrifice() public {
+        bootstrap.processSacrifice(1);
+    }
+
+    // user functions
+    function sacrifice(uint256 randUser, uint256 randToken, uint256 randAmountIn) public {
+        User user = users [randUser % users.length];
+
+        address token = sacrificeTokens[randToken % sacrificeTokens.length];
+
+        uint256 amountIn = clampBetween(randAmountIn, 1, (token == HEX_TOKEN ? HEX_AMOUNT : TOKEN_AMOUNT) / 100);
+
+        (bool success,) = user.proxy(
+            address(bootstrap),
+            abi.encodeWithSelector(bootstrap.sacrifice.selector, token, amountIn, 1) // minOut = 1 because 0 reverts
+        );
+        require(success);
+
+        string memory tokenName;
+        if (address(token) == HEX_TOKEN) {
+            tokenName = "Sacrifice token: HEX";
+        } else if (address(token) == DAI_TOKEN) {
+            tokenName = "Sacrifice token: DAI";
+        } else if (address(token) == PLSX_TOKEN) {
+            tokenName = "Sacrifice token: PLSX";
+        } else {
+            tokenName = "Sacrifice token: WPLS";
+        }
+
+        emit LogAddress("User", address(user));
+        emit LogString(tokenName);
+        emit LogUint256("Sacrifice amount", amountIn);
+    }
+
+    function claimSacrifice(uint256 randUser) public {
+        User user = users[randUser % users.length];
+
+        (bool success, bytes memory data) =
+            user.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimSacrifice.selector));
+        require(success);
+
+        (uint256 tokenId,,) = abi.decode(data, (uint256, uint256, uint256));
+
+        userToTokenIds[user].push(tokenId);
+
+        emit LogAddress("User", address(user));
+    }
+
+    function claimAirdrop(uint256 randUser) public {
+        User user = users[randUser % users.length];
+
+        (bool success,) =
+            user.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimAirdrop.selector));
+        require(success);
+
+        emit LogAddress("User", address(user));
+    }
+
+
 }
