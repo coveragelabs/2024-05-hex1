@@ -12,13 +12,14 @@ contract BootstrapHandler is Base {
 
     // amounts
     uint256 internal constant HEX_AMOUNT = 100_000_000e8;
-    uint256 internal constant DAI_AMOUNT = 100_000_000e18;
+    uint256 internal constant DAI_AMOUNT = 1_000_000e18;
     uint256 internal constant WPLS_AMOUNT = 10_000_000_000e18;
     uint256 internal constant PLSX_AMOUNT = 2_000_000_000e18;
+
     uint256 internal constant TOKEN_AMOUNT = 1_000_000e18;
 
     // users
-    mapping(User user => uint256[] tokenIds) userToTokenIds;
+    mapping(User => uint256[]) userToTokenIds;
     
     // setup users
     constructor() {
@@ -42,6 +43,16 @@ contract BootstrapHandler is Base {
             users[i].approve(WPLS_TOKEN, address(bootstrap));
             users[i].approve(PLSX_TOKEN, address(bootstrap));
         }
+
+        hevm.warp(block.timestamp + feed.period());
+
+        feed.update();
+    }
+
+    // time warp
+    function increaseTimestamp(uint256 _days) public {
+        _days = clampBetween(_days, 1, vault.DURATION());
+        hevm.warp(block.timestamp + _days * 1 days);
     }
 
     // admin functions
