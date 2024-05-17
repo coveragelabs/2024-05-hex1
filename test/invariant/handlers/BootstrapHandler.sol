@@ -50,9 +50,12 @@ contract BootstrapHandler is Base {
     }
 
     // time warp
-    function increaseTimestamp(uint256 _days) public {
-        _days = clampBetween(_days, 1, vault.DURATION());
+    function increaseTimestamp(uint8 _days) public {
         hevm.warp(block.timestamp + _days * 1 days);
+    }
+
+    function updateFeed() public {
+        feed.update();
     }
 
     // admin functions
@@ -237,6 +240,8 @@ contract BootstrapHandler is Base {
         uint256 randUser,
         uint256 randNewUser
     ) public {
+        /// @dev needs adding addresses with HEX stake active
+        
         User user = users[randUser % users.length];
         User newUser = users[randNewUser % users.length];
 
@@ -286,6 +291,57 @@ contract BootstrapHandler is Base {
     /// LOGIC INVARIANTS
 
     /// @custom:invariant Sacrifices can only be made within the predefined timeframe
+    function sacrificeTimeframe(uint256 randUser, uint256 randToken, uint256 randAmount, uint8 _day) public {
+        hevm.warp(block.timestamp + clampBetween(_day, 30, 255) * 1 days);
 
+        User user = users[randUser % users.length];
 
+        address token = sacrificeTokens[randToken % sacrificeTokens.length];
+        uint256 amount = clampBetween(randAmount, 1, TOKEN_AMOUNT / 100);
+
+        (bool success,) = user.proxy(
+            address(bootstrap),
+            abi.encodeWithSelector(bootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
+        );
+        assert (success == false);
+    }
+
+    /// @custom:invariant Sacrifice processing is only available after the sacrifice deadline has passed
+    function processSacrificeTimeframe(uint8 _day) public {
+        /// @dev needs fix for the hevm warp + deployer proxy call
+
+        hevm.warp(block.timestamp + clampBetween(_day, 0, 29) * 1 days);
+
+        (bool success,) =
+            User(address(0x10000)).proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.processSacrifice.selector, 1));
+        assert (success == true);
+    }
+
+    /// @custom:invariant The sacrifice can only be claimed within the claim period
+    function claimSacrificeTimeframe(uint256 randUser, uint8 _day) public {
+        hevm.prank(address(0x10000));
+        bootstrap.processSacrifice(1);
+
+        User user = users[randUser % users.length];
+
+        hevm.warp(block.timestamp + clampBetween(_day, 7, 255) * 1 days);
+
+        (bool success,) =
+            user.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimSacrifice.selector));
+        assert (success == false);
+    }
+
+    /// @custom:invariant The airdrop can only be claimed within the predefined airdrop timeframe
+    function claimAirdropTimeframe(uint256 randUser, uint8 _day) public {
+        hevm.prank(address(0x10000));
+        bootstrap.startAirdrop(uint64(block.timestamp));
+
+        User user = users[randUser % users.length];
+
+        hevm.warp(block.timestamp + clampBetween(_day, 15, 255) * 1 days);
+
+        (bool success,) =
+            user.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimAirdrop.selector));
+        assert (success == false);
+    }
 }
