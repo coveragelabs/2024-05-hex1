@@ -241,7 +241,7 @@ contract BootstrapHandler is Base {
         uint256 randNewUser
     ) public {
         /// @dev needs adding addresses with HEX stake active
-        
+
         User user = users[randUser % users.length];
         User newUser = users[randNewUser % users.length];
 
@@ -308,13 +308,12 @@ contract BootstrapHandler is Base {
 
     /// @custom:invariant Sacrifice processing is only available after the sacrifice deadline has passed
     function processSacrificeTimeframe(uint8 _day) public {
-        /// @dev needs fix for the hevm warp + deployer proxy call
-
         hevm.warp(block.timestamp + clampBetween(_day, 0, 29) * 1 days);
 
-        (bool success,) =
-            User(address(0x10000)).proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.processSacrifice.selector, 1));
-        assert (success == true);
+        (bool success,) = 
+            address(bootstrap).call(abi.encodeWithSelector(bootstrap.processSacrifice.selector, 1));
+
+        assert (success == false);
     }
 
     /// @custom:invariant The sacrifice can only be claimed within the claim period
@@ -323,7 +322,7 @@ contract BootstrapHandler is Base {
         bootstrap.processSacrifice(1);
 
         User user = users[randUser % users.length];
-
+    
         hevm.warp(block.timestamp + clampBetween(_day, 7, 255) * 1 days);
 
         (bool success,) =
@@ -333,7 +332,6 @@ contract BootstrapHandler is Base {
 
     /// @custom:invariant The airdrop can only be claimed within the predefined airdrop timeframe
     function claimAirdropTimeframe(uint256 randUser, uint8 _day) public {
-        hevm.prank(address(0x10000));
         bootstrap.startAirdrop(uint64(block.timestamp));
 
         User user = users[randUser % users.length];
