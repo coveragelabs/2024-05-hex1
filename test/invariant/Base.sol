@@ -18,6 +18,7 @@ import {IPulseXFactory} from "../../src/interfaces/pulsex/IPulseXFactory.sol";
 import {IPulseXRouter02 as IPulseXRouter} from "../../src/interfaces/pulsex/IPulseXRouter.sol";
 import {IPulseXPair} from "../../src/interfaces/pulsex/IPulseXPair.sol";
 import {IERC20} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {IHexToken} from "../../src/interfaces/IHexToken.sol";
 
 contract Base is PropertiesAsserts {
     // constants
