@@ -131,25 +131,31 @@ contract BootstrapHandler is Base {
             address(bootstrap),
             abi.encodeWithSelector(bootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
         );
+        require(success);
 
         (uint256 tokenId,,) = abi.decode(dataSacrifice, (uint256, uint256, uint256));
 
         userToTokenIds[user].push(tokenId);
 
         hevm.warp(block.timestamp + 86401);
+        feed.update();
 
         (bool success1, bytes memory dataSacrifice1) = newUser.proxy(
             address(bootstrap),
             abi.encodeWithSelector(bootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
         );
+        require(success1);
 
         (uint256 tokenId1,,) = abi.decode(dataSacrifice1, (uint256, uint256, uint256));
 
         userToTokenIds[newUser].push(tokenId1);
 
-        bootstrap.processSacrifice(1);
+        (bool successProcess,) = 
+            address(bootstrap).call(abi.encodeWithSelector(bootstrap.processSacrifice.selector, 1));
+        require(successProcess);
 
         hevm.warp(block.timestamp + 86401);
+        feed.update();
 
         (bool successSacrifice, bytes memory data) =
             user.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimSacrifice.selector));
@@ -185,24 +191,23 @@ contract BootstrapHandler is Base {
             address(bootstrap),
             abi.encodeWithSelector(bootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
         );
+        require(success);
 
         (bool success1,) = newUser.proxy(
             address(bootstrap),
             abi.encodeWithSelector(bootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
         );
-
-        bootstrap.processSacrifice(1);
-
-        (bool successSacrifice,) =
-            user.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimSacrifice.selector));
-
-        (bool successSacrifice1,) =
-            newUser.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimSacrifice.selector));
+        require(success1);
 
         uint256 oldUserBalance = hexit.balanceOf(address(user));
         uint256 oldNewUserBalance = hexit.balanceOf(address(newUser));
 
+        (bool successProcess,) = 
+            address(bootstrap).call(abi.encodeWithSelector(bootstrap.processSacrifice.selector, 1));
+        require(successProcess);
+
         hevm.warp(block.timestamp + 86401);
+        feed.update();
 
         bootstrap.startAirdrop(uint64(block.timestamp));
 
@@ -210,6 +215,7 @@ contract BootstrapHandler is Base {
             user.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimAirdrop.selector));
 
         hevm.warp(block.timestamp + 86401);
+        feed.update();
 
         (bool successAirdrop1,) =
             newUser.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimAirdrop.selector));
@@ -252,6 +258,7 @@ contract BootstrapHandler is Base {
             user.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimAirdrop.selector));
 
         hevm.warp(block.timestamp + 86401);
+        feed.update();
 
         (bool successAirdrop1,) =
             newUser.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimAirdrop.selector));
@@ -260,6 +267,7 @@ contract BootstrapHandler is Base {
         uint256 oldNewUserBalance = hexit.balanceOf(address(newUser));
 
         hevm.warp(block.timestamp + 86401);
+        feed.update();
 
         (bool successAirdrop2,) =
             user.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimAirdrop.selector));
