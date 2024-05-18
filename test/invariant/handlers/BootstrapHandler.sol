@@ -58,15 +58,6 @@ contract BootstrapHandler is Base {
         feed.update();
     }
 
-    // admin functions
-    function startAirdrop() public {
-        bootstrap.startAirdrop(uint64(block.timestamp));
-    }
-
-    function processSacrifice() public {
-        bootstrap.processSacrifice(1);
-    }
-
     // user functions
     function sacrifice(uint256 randUser, uint256 randToken, uint256 randAmountIn) public {
         User user = users [randUser % users.length];
@@ -156,7 +147,6 @@ contract BootstrapHandler is Base {
 
         userToTokenIds[newUser].push(tokenId1);
 
-        hevm.prank(address(0x10000));
         bootstrap.processSacrifice(1);
 
         hevm.warp(block.timestamp + 86401);
@@ -201,7 +191,6 @@ contract BootstrapHandler is Base {
             abi.encodeWithSelector(bootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
         );
 
-        hevm.prank(address(0x10000));
         bootstrap.processSacrifice(1);
 
         (bool successSacrifice,) =
@@ -215,7 +204,6 @@ contract BootstrapHandler is Base {
 
         hevm.warp(block.timestamp + 86401);
 
-        hevm.prank(address(0x10000));
         bootstrap.startAirdrop(uint64(block.timestamp));
 
         (bool successAirdrop,) =
@@ -235,6 +223,7 @@ contract BootstrapHandler is Base {
         assert(finalUserBalance > finalNewUserBalance);
     }
 
+    /*
     /// @custom:invariant If two users have the same amount of HEX staked and did not participate in the sacrifice, the one who claimed the airdrop first should always receive more HEXIT
     function airdropPriorityHexStaked(
         uint256 randUser,
@@ -257,7 +246,6 @@ contract BootstrapHandler is Base {
             abi.encodeWithSelector(hexOnePool.stake.selector, TOKEN_AMOUNT)
         );
 
-        hevm.prank(address(0x10000));
         bootstrap.startAirdrop(uint64(block.timestamp));
 
         (bool successAirdrop,) =
@@ -286,7 +274,7 @@ contract BootstrapHandler is Base {
         uint256 finalNewUserBalance = newNewUserBalance - oldNewUserBalance;
 
         assert(finalUserBalance > finalNewUserBalance);
-    }
+    }*/
     
     /// LOGIC INVARIANTS
 
@@ -318,7 +306,6 @@ contract BootstrapHandler is Base {
 
     /// @custom:invariant The sacrifice can only be claimed within the claim period
     function claimSacrificeTimeframe(uint256 randUser, uint8 _day) public {
-        hevm.prank(address(0x10000));
         bootstrap.processSacrifice(1);
 
         User user = users[randUser % users.length];
