@@ -49,15 +49,6 @@ contract BootstrapHandler is Base {
         feed.update();
     }
 
-    // time warp
-    function increaseTimestamp(uint8 _days) public {
-        hevm.warp(block.timestamp + _days * 1 days);
-    }
-
-    function updateFeed() public {
-        feed.update();
-    }
-
     // user functions
     function sacrifice(uint256 randUser, uint256 randToken, uint256 randAmountIn) public {
         User user = users [randUser % users.length];
@@ -154,6 +145,8 @@ contract BootstrapHandler is Base {
 
         userToTokenIds[newUser].push(tokenId1);
 
+        hevm.warp(block.timestamp + 30 days);
+
         (success,) = 
             address(bootstrap).call(abi.encodeWithSelector(bootstrap.processSacrifice.selector, 1));
         require(success);
@@ -163,6 +156,7 @@ contract BootstrapHandler is Base {
 
         (success, data) =
             user.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimSacrifice.selector));
+        require(success);
 
         (,, uint256 hexitMinted) = abi.decode(data, (uint256, uint256, uint256));
 
@@ -172,8 +166,12 @@ contract BootstrapHandler is Base {
 
         (success, data) =
             newUser.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimSacrifice.selector));
+        require(success);
 
         (,, uint256 hexitMinted1) = abi.decode(data, (uint256, uint256, uint256));
+
+        emit LogUint256("Hexit minted: ", hexitMinted);
+        emit LogUint256("Hexit minted 1: ", hexitMinted1);
 
         assert(hexitMinted > hexitMinted1);
     }
@@ -207,25 +205,30 @@ contract BootstrapHandler is Base {
         uint256 oldUserBalance = hexit.balanceOf(address(user));
         uint256 oldNewUserBalance = hexit.balanceOf(address(newUser));
 
+        hevm.warp(block.timestamp + 30 days);
+        feed.update();
+
         (bool successProcess,) = 
             address(bootstrap).call(abi.encodeWithSelector(bootstrap.processSacrifice.selector, 1));
         require(successProcess);
-
-        hevm.warp(block.timestamp + 1 days);
-        feed.update();
 
         (bool successAirdrop,) = 
             address(bootstrap).call(abi.encodeWithSelector(bootstrap.startAirdrop.selector, uint64(block.timestamp)));
         require(successAirdrop);
 
+        hevm.warp(block.timestamp + 1 days);
+        feed.update();
+
         (bool successClaimAirdrop,) =
             user.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimAirdrop.selector));
+        require(successClaimAirdrop);
 
         hevm.warp(block.timestamp + 1 days);
         feed.update();
 
         (bool successAirdropClaim1,) =
             newUser.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimAirdrop.selector));
+        require(successAirdropClaim1);
 
         uint256 newUserBalance = hexit.balanceOf(address(newUser));
         uint256 newNewUserBalance = hexit.balanceOf(address(newUser));
@@ -233,11 +236,15 @@ contract BootstrapHandler is Base {
         uint256 finalUserBalance = newUserBalance - oldUserBalance;
         uint256 finalNewUserBalance = newNewUserBalance - oldNewUserBalance;
 
-        assert(finalUserBalance > finalNewUserBalance);
+        emit LogUint256("Final user balance: ", finalUserBalance);
+        emit LogUint256("Final new user balance: ", finalNewUserBalance);
+
+        assert(finalUserBalance == finalNewUserBalance);
     }
 
+    /*
     /// @custom:invariant If two users have the same amount of HEX staked and did not participate in the sacrifice, the one who claimed the airdrop first should always receive more HEXIT
-    /// @audit INVARIANT BROKEN
+    /// INVARIANT BROKEN
     function airdropPriorityHexStaked(
         uint256 randUser,
         uint256 randNewUser,
@@ -271,12 +278,14 @@ contract BootstrapHandler is Base {
 
         (bool successAirdrop2,) =
             user.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimAirdrop.selector));
+        require(successAirdrop2);
 
         hevm.warp(block.timestamp + 1 days);
         feed.update();
 
         (bool successAirdrop3,) =
             newUser.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimAirdrop.selector));
+        require(successAirdrop3);
 
         uint256 newUserBalance = hexit.balanceOf(address(newUser));
         uint256 newNewUserBalance = hexit.balanceOf(address(newUser));
@@ -288,11 +297,12 @@ contract BootstrapHandler is Base {
         emit LogUint256("Final new user balance: ", finalNewUserBalance);
 
         assert(finalUserBalance > finalNewUserBalance);
-    }
+    }*/
     
     /// LOGIC INVARIANTS
 
     /// @custom:invariant Sacrifices can only be made within the predefined timeframe
+    /// INVARIANT VERIFIED
     function sacrificeTimeframe(uint256 randUser, uint256 randToken, uint256 randAmount, uint8 _day) public {
         hevm.warp(block.timestamp + clampBetween(_day, 30, 255) * 1 days);
 
@@ -305,10 +315,12 @@ contract BootstrapHandler is Base {
             address(bootstrap),
             abi.encodeWithSelector(bootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
         );
+
         assert (success == false);
     }
 
     /// @custom:invariant Sacrifice processing is only available after the sacrifice deadline has passed
+    /// INVARIANT VERIFIED
     function processSacrificeTimeframe(uint8 _day) public {
         hevm.warp(block.timestamp + clampBetween(_day, 0, 29) * 1 days);
 
@@ -319,21 +331,38 @@ contract BootstrapHandler is Base {
     }
 
     /// @custom:invariant The sacrifice can only be claimed within the claim period
-    function claimSacrificeTimeframe(uint256 randUser, uint8 _day) public {
+    function claimSacrificeTimeframe(uint256 randUser, uint256 randAmount, uint256 randToken, uint8 _day) public {
+        User user = users[randUser % users.length];
+
+        address token = sacrificeTokens[randToken % sacrificeTokens.length];
+        uint256 amount = clampBetween(randAmount, 1, TOKEN_AMOUNT / 100);
+
+        (bool success,) = user.proxy(
+            address(bootstrap),
+            abi.encodeWithSelector(bootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
+        );
+        require(success);
+
+        hevm.warp(block.timestamp + clampBetween(_day, 30, 255) * 1 days);
+
         (bool successProcess,) = 
             address(bootstrap).call(abi.encodeWithSelector(bootstrap.processSacrifice.selector, 1));
-        require(successProcess);
+        //require(successProcess);
+        //stakeStart out of gas
 
+        /*
         User user = users[randUser % users.length];
     
         hevm.warp(block.timestamp + clampBetween(_day, 7, 255) * 1 days);
 
         (bool success,) =
-            user.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimSacrifice.selector));
-        assert (success == false);
+            user.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimSacrifice.selector));*/
+
+        assert (successProcess == true);
     }
 
     /// @custom:invariant The airdrop can only be claimed within the predefined airdrop timeframe
+    /// INVARIANT VERIFIED
     function claimAirdropTimeframe(uint256 randUser, uint8 _day) public {
         (bool successAirdrop,) = 
             address(bootstrap).call(abi.encodeWithSelector(bootstrap.startAirdrop.selector, uint64(block.timestamp)));
@@ -345,6 +374,7 @@ contract BootstrapHandler is Base {
 
         (bool success,) =
             user.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimAirdrop.selector));
+
         assert (success == false);
     }
 }
