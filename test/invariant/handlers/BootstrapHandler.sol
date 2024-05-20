@@ -251,7 +251,8 @@ contract BootstrapHandler is Base {
         uint256 randUser,
         uint256 randNewUser,
         uint256 randAmount,
-        uint256 randDuration
+        uint256 randDuration,
+        uint8 _day
     ) public {
         User user = users[randUser % users.length];
         User newUser = users[randNewUser % users.length];
