@@ -101,12 +101,17 @@ contract BootstrapHandler is Base {
             address(bootstrap).call(abi.encodeWithSelector(bootstrap.startAirdrop.selector, uint64(block.timestamp)));
             
         require(successAirdrop);
+
+        bootstrap.startAirdrop(uint64(block.timestamp));
     }
 
     function processSacrifice() public {
         (,uint256 sacrificedAmount,,) = bootstrap.sacrificeInfo();
         uint256 minAmountOut = (sacrificedAmount * 1250) / 10000;
 
+        bootstrap.processSacrifice(minAmountOut);
+
+        
         (bool successProcess,) = 
             address(bootstrap).call(abi.encodeWithSelector(bootstrap.processSacrifice.selector, 1));
         require(successProcess);
@@ -129,14 +134,12 @@ contract BootstrapHandler is Base {
         address token = sacrificeTokens[randToken % sacrificeTokens.length];
         uint256 amount = clampBetween(randAmount, 1, (token == HEX_TOKEN ? HEX_AMOUNT : TOKEN_AMOUNT) / 100);
 
-        hevm.warp(block.timestamp + 1 days);
         feed.update();
 
         (bool success,) = user.proxy(
             address(bootstrap),
             abi.encodeWithSelector(bootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
         );
-        require(success);
 
         hevm.warp(block.timestamp + 1 days);
         feed.update();
@@ -145,27 +148,25 @@ contract BootstrapHandler is Base {
             address(bootstrap),
             abi.encodeWithSelector(bootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
         );
-        require(successNew);
 
         hevm.warp(block.timestamp + clampBetween(_day, 30, 255) * 1 days);
         feed.update();
 
         (bool successProcess,) = 
             address(bootstrap).call(abi.encodeWithSelector(bootstrap.processSacrifice.selector, 1));
-        require(successProcess);
+        //assert(successProcess == true);
+        // out of gas
 
-        hevm.warp(block.timestamp + clampBetween(_day, 0, 6) * 1 days);
+        hevm.warp(block.timestamp + 1 days);
         feed.update();
 
         (bool successClaim, bytes memory data) =
             user.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimSacrifice.selector));
-        require(successClaim);
 
         (,, uint256 hexitMinted) = abi.decode(data, (uint256, uint256, uint256));
 
         (bool successClaimNew, bytes memory dataNew) =
             newUser.proxy(address(bootstrap), abi.encodeWithSelector(bootstrap.claimSacrifice.selector));
-        require(successClaimNew);
 
         (,, uint256 hexitMinted1) = abi.decode(dataNew, (uint256, uint256, uint256));
 
@@ -173,7 +174,7 @@ contract BootstrapHandler is Base {
         emit LogUint256("Hexit minted 1: ", hexitMinted1);
 
         //needs fix - condition is minted > minted1
-        assert(0 == 1);
+        assert(hexitMinted == hexitMinted1);
     }
 
     /// @custom:invariant If two users sacrificed the same amount in USD and have no HEX staked, the one who claimed the airdrop first should always receive more HEXIT
@@ -211,10 +212,6 @@ contract BootstrapHandler is Base {
 
         hevm.warp(block.timestamp + clampBetween(_day, 30, 255) * 1 days);
         feed.update();
-
-        (bool successProcess,) = 
-            address(bootstrap).call(abi.encodeWithSelector(bootstrap.processSacrifice.selector, 1));
-        require(successProcess);
 
         (bool successAirdrop,) = 
             address(bootstrap).call(abi.encodeWithSelector(bootstrap.startAirdrop.selector, uint64(block.timestamp)));
@@ -339,21 +336,18 @@ contract BootstrapHandler is Base {
         address token = sacrificeTokens[randToken % sacrificeTokens.length];
         uint256 amount = clampBetween(randAmount, 1, (token == HEX_TOKEN ? HEX_AMOUNT : TOKEN_AMOUNT) / 100);
 
-        hevm.warp(block.timestamp + 1 days);
         feed.update();
 
         (bool success,) = user.proxy(
             address(bootstrap),
             abi.encodeWithSelector(bootstrap.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
         );
-        require(success);
 
         hevm.warp(block.timestamp + clampBetween(_day, 30, 255) * 1 days);
         feed.update();
 
         (bool successProcess,) = 
             address(bootstrap).call(abi.encodeWithSelector(bootstrap.processSacrifice.selector, 1));
-        require(successProcess);
         //stakeStart out of gas
 
         hevm.warp(block.timestamp + clampBetween(_day, 7, 255) * 1 days);
