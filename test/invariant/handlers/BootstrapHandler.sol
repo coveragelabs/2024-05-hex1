@@ -136,14 +136,16 @@ contract BootstrapHandler is Base {
     ) public {
         User user = users[randUser % users.length];
         User newUser = users[randNewUser % users.length];
-        (
-            uint64 sacrificeStart,,
-            bool sacrificeProcessed
-        ) = BOOTSTRAP.sacrificeSchedule();
+        require(address(user) != address(newUser));
+
+        (uint64 sacrificeStart,,) = BOOTSTRAP.sacrificeSchedule();
+        require(block.timestamp < sacrificeStart + BOOTSTRAP.SACRIFICE_DURATION());
+
+        (uint256 sacrificedUsdUser,,,) = BOOTSTRAP.userInfos(address(user));
+        (uint256 sacrificedUsdNewUser,,,) = BOOTSTRAP.userInfos(address(newUser));
         require(
-            address(user) != address(newUser) &&
-            sacrificeProcessed == false &&
-            block.timestamp < sacrificeStart + BOOTSTRAP.SACRIFICE_DURATION()
+            sacrificedUsdUser == 0 &&
+            sacrificedUsdNewUser == 0
         );
 
         address token = sacrificeTokens[randToken % sacrificeTokens.length];
@@ -182,10 +184,9 @@ contract BootstrapHandler is Base {
         require(success);
 
         uint256 processWarpMin = sacrificeStart + BOOTSTRAP.SACRIFICE_DURATION() - block.timestamp;
-        uint256 processWarpMax = processWarpMin + BOOTSTRAP.SACRIFICE_CLAIM_DURATION() - 1;
         hevm.warp(block.timestamp + clampBetween(
             _seconds, 
-            sacrificeStart + BOOTSTRAP.SACRIFICE_DURATION() - block.timestamp, 
+            processWarpMin, 
             processWarpMin + BOOTSTRAP.SACRIFICE_CLAIM_DURATION() - 1
             )
         );
@@ -225,16 +226,20 @@ contract BootstrapHandler is Base {
     ) public {
         User user = users[randUser % users.length];
         User newUser = users[randNewUser % users.length];
-        (
-            uint64 sacrificeStart,,
-            bool sacrificeProcessed
-        ) = BOOTSTRAP.sacrificeSchedule();
+        require(address(user) != address(newUser));
+
+        (uint64 sacrificeStart,,) = BOOTSTRAP.sacrificeSchedule();
         (,,bool airdropProcessed) = BOOTSTRAP.airdropSchedule();
         require(
-            address(user) != address(newUser) &&
-            sacrificeProcessed == false &&
             airdropProcessed == false &&
             block.timestamp < sacrificeStart + BOOTSTRAP.SACRIFICE_DURATION()
+        );
+
+        (uint256 sacrificedUsdUser,,,) = BOOTSTRAP.userInfos(address(user));
+        (uint256 sacrificedUsdNewUser,,,) = BOOTSTRAP.userInfos(address(newUser));
+        require(
+            sacrificedUsdUser == 0 &&
+            sacrificedUsdNewUser == 0
         ); 
 
         uint256 oldUserBalance = HEXIT.balanceOf(address(user));
@@ -273,22 +278,20 @@ contract BootstrapHandler is Base {
             address(BOOTSTRAP).call(abi.encodeWithSelector(BOOTSTRAP.startAirdrop.selector, uint64(block.timestamp)));
         require(success);
 
+        (,uint64 airdropClaimEnd,) = BOOTSTRAP.airdropSchedule();
+
         (success,) =
             user.proxy(address(BOOTSTRAP), abi.encodeWithSelector(BOOTSTRAP.claimAirdrop.selector));
         require(success);
 
-        (,uint64 airdropClaimEnd,) = BOOTSTRAP.airdropSchedule();
-        uint256 maxWarp = airdropClaimEnd - block.timestamp - 1;
-        hevm.warp(block.timestamp + clampBetween(_seconds, 86400, maxWarp));
+        hevm.warp(block.timestamp + clampBetween(_seconds, 86400, airdropClaimEnd - block.timestamp - 1));
 
         (success,) =
             newUser.proxy(address(BOOTSTRAP), abi.encodeWithSelector(BOOTSTRAP.claimAirdrop.selector));
         require(success);
 
-        uint256 newUserBalance = HEXIT.balanceOf(address(user));
-        uint256 newNewUserBalance = HEXIT.balanceOf(address(newUser));
-        uint256 finalUserBalance = newUserBalance - oldUserBalance;
-        uint256 finalNewUserBalance = newNewUserBalance - oldNewUserBalance;
+        uint256 finalUserBalance = HEXIT.balanceOf(address(user)) - oldUserBalance;
+        uint256 finalNewUserBalance = HEXIT.balanceOf(address(newUser)) - oldNewUserBalance;
 
         emit LogUint256("Final user balance: ", finalUserBalance);
         emit LogUint256("Final new user balance: ", finalNewUserBalance);
@@ -306,11 +309,10 @@ contract BootstrapHandler is Base {
     ) public {
         User user = users[randUser % users.length];
         User newUser = users[randNewUser % users.length];
+        require(address(user) != address(newUser));
+
         (,,bool airdropProcessed) = BOOTSTRAP.airdropSchedule();
-        require(
-            address(user) != address(newUser) &&
-            airdropProcessed == false
-        ); 
+        require(airdropProcessed == false); 
 
         (uint256 sacrificedUsdUser,,,) = BOOTSTRAP.userInfos(address(user));
         (uint256 sacrificedUsdNewUser,,,) = BOOTSTRAP.userInfos(address(newUser));
@@ -355,8 +357,7 @@ contract BootstrapHandler is Base {
         require(success);
 
         (,uint64 airdropClaimEnd,) = BOOTSTRAP.airdropSchedule();
-        uint256 maxWarp = airdropClaimEnd - block.timestamp - 1;
-        hevm.warp(block.timestamp + clampBetween(_seconds, 86400, maxWarp));
+        hevm.warp(block.timestamp + clampBetween(_seconds, 86400, airdropClaimEnd - block.timestamp - 1));
 
         (success,) = newUser.proxy(
             address(BOOTSTRAP), 
@@ -364,10 +365,8 @@ contract BootstrapHandler is Base {
         );
         require(success);
 
-        uint256 newUserBalance = HEXIT.balanceOf(address(user));
-        uint256 newNewUserBalance = HEXIT.balanceOf(address(newUser));
-        uint256 finalUserBalance = newUserBalance - oldUserBalance;
-        uint256 finalNewUserBalance = newNewUserBalance - oldNewUserBalance;
+        uint256 finalUserBalance = HEXIT.balanceOf(address(user)) - oldUserBalance;
+        uint256 finalNewUserBalance = HEXIT.balanceOf(address(newUser)) - oldNewUserBalance;
 
         emit LogUint256("Final user balance: ", finalUserBalance);
         emit LogUint256("Final new user balance: ", finalNewUserBalance);
