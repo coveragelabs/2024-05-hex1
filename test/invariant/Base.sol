@@ -28,6 +28,7 @@ import {PulseXFactoryMock} from "./mocks/PulseXFactoryMock.sol";
 
 // interfaces
 import {IERC20} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {IHexToken} from "../../src/interfaces/IHexToken.sol";
 
 contract Base is PropertiesAsserts {
     // constants
