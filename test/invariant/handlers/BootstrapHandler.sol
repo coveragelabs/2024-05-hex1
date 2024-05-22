@@ -277,73 +277,94 @@ contract BootstrapHandler is Base {
     /// LOGIC INVARIANTS
 
     /// @custom:invariant Sacrifices can only be made within the predefined timeframe
-    function sacrificeTimeframe(uint256 randUser, uint256 randToken, uint256 randAmount, uint8 _day) public {
-        hevm.warp(block.timestamp + clampBetween(_day, 30, 255) * 1 days);
+    function sacrificeTimeframe(uint256 randUser, uint256 randToken, uint256 randAmount) public {
+        (uint64 start,,bool processed) = BOOTSTRAP.sacrificeSchedule();
+        require(processed == true);
 
         User user = users[randUser % users.length];
-
         address token = sacrificeTokens[randToken % sacrificeTokens.length];
-        uint256 amount = clampBetween(randAmount, 1, (token == address(HEX_TOKEN) ? HEX_AMOUNT : TOKEN_AMOUNT) / 100);
+
+        uint256 amount = clampBetween(
+            randAmount, 
+            1, 
+            (
+                token == address(HEX_TOKEN) ? 
+                    HEX_AMOUNT : 
+                    TOKEN_AMOUNT
+            ) / 100);
+        require(IERC20(token).balanceOf(address(user)) >= amount);
 
         (bool success,) = user.proxy(
             address(BOOTSTRAP),
-            abi.encodeWithSelector(BOOTSTRAP.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
+            abi.encodeWithSelector(BOOTSTRAP.sacrifice.selector, token, amount, 1)
         );
-
-        assert (success == false);
+        assert(success == false);
     }
 
     /// @custom:invariant Sacrifice processing is only available after the sacrifice deadline has passed
     function processSacrificeTimeframe() public {
-        (uint64 start,,bool processed) = BOOTSTRAP.sacrificeSchedule();
-        require(block.timestamp < start + BOOTSTRAP.SACRIFICE_DURATION() && processed == false);
+        (
+            uint64 start,,
+            bool processed
+        ) = BOOTSTRAP.sacrificeSchedule();
+        require(
+            block.timestamp < start + BOOTSTRAP.SACRIFICE_DURATION() && 
+            processed == false
+        );
 
         (bool success,) = 
             address(BOOTSTRAP).call(abi.encodeWithSelector(BOOTSTRAP.processSacrifice.selector, 1));
-
-        assert (success == false);
+        assert(success == false);
     }
 
     /// @custom:invariant The sacrifice can only be claimed within the claim period
-    function claimSacrificeTimeframe(uint256 randUser, uint256 randAmount, uint256 randToken, uint8 _day) public {
+    function claimSacrificeTimeframe(uint256 randUser) public {
+        (
+            ,uint64 claimEnd,
+            bool processed
+        ) = BOOTSTRAP.sacrificeSchedule();
+        require(processed == true);
+        
         User user = users[randUser % users.length];
-
-        address token = sacrificeTokens[randToken % sacrificeTokens.length];
-        uint256 amount = clampBetween(randAmount, 1, (token == address(HEX_TOKEN) ? HEX_AMOUNT : TOKEN_AMOUNT) / 100);
-
-        (bool success,) = user.proxy(
-            address(BOOTSTRAP),
-            abi.encodeWithSelector(BOOTSTRAP.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
+        (
+            uint256 sacrificedUsd,,,
+            bool sacrificeClaimed
+        ) = BOOTSTRAP.userInfos(address(user));
+        require(
+            sacrificedUsd > 0 &&
+            sacrificeClaimed == false &&
+            block.timestamp >= claimEnd
         );
-        require(success);
-
-        hevm.warp(block.timestamp + clampBetween(_day, 30, 255) * 1 days);
-
-        (bool successProcess,) = 
-            address(BOOTSTRAP).call(abi.encodeWithSelector(BOOTSTRAP.processSacrifice.selector, 1));
-        require(successProcess);
-
-        hevm.warp(block.timestamp + clampBetween(_day, 7, 255) * 1 days);
 
         (bool successClaim,) =
             user.proxy(address(BOOTSTRAP), abi.encodeWithSelector(BOOTSTRAP.claimSacrifice.selector));
-
-        assert (successClaim == false);
+        assert(successClaim == false);
     }
 
     /// @custom:invariant The airdrop can only be claimed within the predefined airdrop timeframe
-    function claimAirdropTimeframe(uint256 randUser, uint8 _day) public {
-        (bool successAirdrop,) = 
-            address(BOOTSTRAP).call(abi.encodeWithSelector(BOOTSTRAP.startAirdrop.selector, uint64(block.timestamp)));
-        require(successAirdrop);
+    function claimAirdropTimeframe(uint256 randUser) public {
+        (
+            uint64 start,
+            uint64 claimEnd,
+            bool processed
+        ) = BOOTSTRAP.airdropSchedule();
+        require(
+            processed == false && 
+            block.timestamp >= claimEnd
+        );
 
         User user = users[randUser % users.length];
-
-        hevm.warp(block.timestamp + clampBetween(_day, 15, 255) * 1 days);
+        (
+            uint256 sacrificedUsd,,,
+            bool airdropClaimed
+        ) = BOOTSTRAP.userInfos(address(user));
+        require(
+            sacrificedUsd > 0 &&
+            airdropClaimed == false
+        );
 
         (bool success,) =
             user.proxy(address(BOOTSTRAP), abi.encodeWithSelector(BOOTSTRAP.claimAirdrop.selector));
-
-        assert (success == false);
+        assert(success == false);
     }
 }
