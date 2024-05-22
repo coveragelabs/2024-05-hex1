@@ -78,6 +78,7 @@ contract Base is PropertiesAsserts {
         _initializeProtocol();
         _setPrices();
         _createUsers();
+        _fundRouter();
     }
 
     function _deployTokens() private {
@@ -153,5 +154,12 @@ contract Base is PropertiesAsserts {
         FEED.setPrice(address(HEX_TOKEN), address(USDT_TOKEN), HEX_USDT_INIT_PRICE);
         FEED.setPrice(address(WPLS_TOKEN), address(DAI_TOKEN), WPLS_DAI_INIT_PRICE);
         FEED.setPrice(address(PLSX_TOKEN), address(DAI_TOKEN), PLSX_DAI_INIT_PRICE);
+    }
+
+    function _fundRouter() private {
+        HEX_TOKEN.mint(address(ROUTER), 100000000e8);
+        DAI_TOKEN.mint(address(ROUTER), 100000000 ether);
+        WPLS_TOKEN.mint(address(ROUTER), 100000000 ether);
+        PLSX_TOKEN.mint(address(ROUTER), 100000000 ether);
     }
 }

@@ -112,6 +112,39 @@ contract BootstrapHandler is Base {
         require(successProcess);
     }
 
+     // user calls
+    function randAddLiquidity(uint256 randUser, uint256 randAmount, uint256 randToken) public {
+        User user = users[randUser % users.length];
+
+        address tokenIn = sacrificeTokens[randToken % sacrificeTokens.length];
+
+        uint256 amountIn = clampBetween(randAmount, 1, (tokenIn == address(HEX_TOKEN) ? HEX_AMOUNT : TOKEN_AMOUNT) / 100);
+        uint256 amountOut = FEED.quote(tokenIn, amountIn, address(DAI_TOKEN));
+
+        (bool success, bytes memory data) = user.proxy(
+            address(ROUTER),
+            abi.encodeWithSelector(
+                ROUTER.addLiquidity.selector,
+                tokenIn,
+                address(DAI_TOKEN),
+                amountIn,
+                amountOut,
+                0,
+                0,
+                address(0),
+                0
+            )
+        );
+        require(success);
+
+        (,, uint256 lpAmount) = abi.decode(data, (uint256, uint256, uint256));
+
+        emit LogAddress("User", address(user));
+        emit LogUint256("tokenIn amount", amountIn);
+        emit LogUint256("DAI amount", amountOut);
+        emit LogUint256("LP amount", lpAmount);
+    }
+
     /// CONTEXT INVARIANTS
 
     /// @custom:invariant - If two users sacrifice the same amount in USD on different days, the one who sacrificed first should always receive more HEXIT
@@ -133,6 +166,7 @@ contract BootstrapHandler is Base {
             address(BOOTSTRAP),
             abi.encodeWithSelector(BOOTSTRAP.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
         );
+        require(success);
 
         hevm.warp(block.timestamp + 1 days);
 
@@ -140,6 +174,7 @@ contract BootstrapHandler is Base {
             address(BOOTSTRAP),
             abi.encodeWithSelector(BOOTSTRAP.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
         );
+        require(successNew);
 
         hevm.warp(block.timestamp + clampBetween(_day, 30, 255) * 1 days);
 
@@ -302,8 +337,9 @@ contract BootstrapHandler is Base {
     }
 
     /// @custom:invariant Sacrifice processing is only available after the sacrifice deadline has passed
-    function processSacrificeTimeframe(uint8 _day) public {
-        hevm.warp(block.timestamp + clampBetween(_day, 0, 29) * 1 days);
+    function processSacrificeTimeframe() public {
+        (uint64 start,,bool processed) = BOOTSTRAP.sacrificeSchedule();
+        require(block.timestamp < start + BOOTSTRAP.SACRIFICE_DURATION() && processed == false);
 
         (bool success,) = 
             address(BOOTSTRAP).call(abi.encodeWithSelector(BOOTSTRAP.processSacrifice.selector, 1));
@@ -322,6 +358,7 @@ contract BootstrapHandler is Base {
             address(BOOTSTRAP),
             abi.encodeWithSelector(BOOTSTRAP.sacrifice.selector, token, amount, 1) // minOut = 1 because 0 reverts
         );
+        require(success);
 
         hevm.warp(block.timestamp + clampBetween(_day, 30, 255) * 1 days);
 

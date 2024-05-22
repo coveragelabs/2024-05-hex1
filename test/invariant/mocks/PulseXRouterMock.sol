@@ -2,7 +2,7 @@
 pragma solidity 0.8.20;
 
 import {IERC20} from "../../../src/interfaces/IERC20.sol";
-
+import {ERC20Mock} from "./ERC20Mock.sol";
 import {HexOnePriceFeedMock} from "./HexOnePriceFeedMock.sol";
 
 contract PulseXRouterMock {
@@ -30,5 +30,21 @@ contract PulseXRouterMock {
         IERC20(path[1]).transfer(to, amountOut);
 
         amounts[1] = amountOut;
+    }
+
+    function addLiquidity(
+        address tokenA,
+        address tokenB,
+        uint256 amountADesired,
+        uint256 amountBDesired,
+        uint256 amountAMin,
+        uint256 amountBMin,
+        address to,
+        uint256 deadline
+    ) external returns (uint256, uint256, uint256) {
+        ERC20Mock(tokenA).transferFrom(msg.sender, address(this), amountADesired);
+        ERC20Mock(tokenB).transferFrom(msg.sender, address(this), amountBDesired);
+        //ERC20Mock(lpToken).mint(msg.sender, amountADesired);
+        return (amountADesired, amountBDesired, 0);
     }
 }

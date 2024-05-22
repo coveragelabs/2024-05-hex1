@@ -11,4 +11,8 @@ contract PulseXFactoryMock {
     function getPair(address, address) public view returns (address) {
         return HEX1_DAI_TOKEN;
     }
+
+    function createPair(address, address) external returns (address) {
+        return HEX1_DAI_TOKEN;
+    }
 }
