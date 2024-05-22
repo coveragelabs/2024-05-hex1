@@ -69,10 +69,6 @@ contract BootstrapHandler is Base {
         } else {
             tokenName = "Sacrifice token: WPLS";
         }
-
-        emit LogAddress("User", address(user));
-        emit LogString(tokenName);
-        emit LogUint256("Sacrifice amount", amountIn);
     }
 
     function claimSacrifice(uint256 randUser) public {
@@ -81,8 +77,6 @@ contract BootstrapHandler is Base {
         (bool success, bytes memory data) =
             user.proxy(address(BOOTSTRAP), abi.encodeWithSelector(BOOTSTRAP.claimSacrifice.selector));
         require(success);
-
-        emit LogAddress("User", address(user));
     }
 
     function claimAirdrop(uint256 randUser) public {
@@ -91,58 +85,22 @@ contract BootstrapHandler is Base {
         (bool success,) =
             user.proxy(address(BOOTSTRAP), abi.encodeWithSelector(BOOTSTRAP.claimAirdrop.selector));
         require(success);
-
-        emit LogAddress("User", address(user));
     }
 
     function startAirdrop() public {
         (bool successAirdrop,) = 
             address(BOOTSTRAP).call(abi.encodeWithSelector(BOOTSTRAP.startAirdrop.selector, uint64(block.timestamp)));
-            
         require(successAirdrop);
 
     }
 
     function processSacrifice() public {
-        (,uint256 sacrificedAmount,,) = BOOTSTRAP.sacrificeInfo();
-        uint256 minAmountOut = (sacrificedAmount * 1250) / 10000;
+        //(,uint256 sacrificedAmount,,) = BOOTSTRAP.sacrificeInfo();
+        //uint256 minAmountOut = (sacrificedAmount * 1250) / 10000;
         
         (bool successProcess,) = 
-            address(BOOTSTRAP).call(abi.encodeWithSelector(BOOTSTRAP.processSacrifice.selector, minAmountOut));
+            address(BOOTSTRAP).call(abi.encodeWithSelector(BOOTSTRAP.processSacrifice.selector, 1));
         require(successProcess);
-    }
-
-     // user calls
-    function randAddLiquidity(uint256 randUser, uint256 randAmount, uint256 randToken) public {
-        User user = users[randUser % users.length];
-
-        address tokenIn = sacrificeTokens[randToken % sacrificeTokens.length];
-
-        uint256 amountIn = clampBetween(randAmount, 1, (tokenIn == address(HEX_TOKEN) ? HEX_AMOUNT : TOKEN_AMOUNT) / 100);
-        uint256 amountOut = FEED.quote(tokenIn, amountIn, address(DAI_TOKEN));
-
-        (bool success, bytes memory data) = user.proxy(
-            address(ROUTER),
-            abi.encodeWithSelector(
-                ROUTER.addLiquidity.selector,
-                tokenIn,
-                address(DAI_TOKEN),
-                amountIn,
-                amountOut,
-                0,
-                0,
-                address(0),
-                0
-            )
-        );
-        require(success);
-
-        (,, uint256 lpAmount) = abi.decode(data, (uint256, uint256, uint256));
-
-        emit LogAddress("User", address(user));
-        emit LogUint256("tokenIn amount", amountIn);
-        emit LogUint256("DAI amount", amountOut);
-        emit LogUint256("LP amount", lpAmount);
     }
 
     /// CONTEXT INVARIANTS
@@ -181,7 +139,6 @@ contract BootstrapHandler is Base {
         (bool successProcess,) = 
             address(BOOTSTRAP).call(abi.encodeWithSelector(BOOTSTRAP.processSacrifice.selector, 1));
         require(successProcess);
-        //setup router proxy liquidity
 
         hevm.warp(block.timestamp + 1 days);
 
@@ -365,7 +322,6 @@ contract BootstrapHandler is Base {
         (bool successProcess,) = 
             address(BOOTSTRAP).call(abi.encodeWithSelector(BOOTSTRAP.processSacrifice.selector, 1));
         require(successProcess);
-        //setup router proxy liquidity
 
         hevm.warp(block.timestamp + clampBetween(_day, 7, 255) * 1 days);
 
