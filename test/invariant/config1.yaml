@@ -1,5 +1,4 @@
-rpcUrl: https://rpc.pulsechain.com
-rpcBlock: 20194011
+maxTimeDelay: 150000000
 
 workers: 10
 seqLen: 10
