@@ -146,7 +146,7 @@ contract BootstrapHandler is Base {
         (bool successProcess,) = 
             address(BOOTSTRAP).call(abi.encodeWithSelector(BOOTSTRAP.processSacrifice.selector, 1));
         require(successProcess);
-        // out of gas
+        //setup router proxy liquidity
 
         hevm.warp(block.timestamp + 1 days);
 
@@ -163,7 +163,6 @@ contract BootstrapHandler is Base {
         emit LogUint256("Hexit minted: ", hexitMinted);
         emit LogUint256("Hexit minted 1: ", hexitMinted1);
 
-        //needs fix - condition is minted > minted1
         assert(hexitMinted > hexitMinted1);
     }
 
@@ -303,7 +302,6 @@ contract BootstrapHandler is Base {
     }
 
     /// @custom:invariant Sacrifice processing is only available after the sacrifice deadline has passed
-    /// INVARIANT VERIFIED
     function processSacrificeTimeframe(uint8 _day) public {
         hevm.warp(block.timestamp + clampBetween(_day, 0, 29) * 1 days);
 
@@ -329,14 +327,14 @@ contract BootstrapHandler is Base {
 
         (bool successProcess,) = 
             address(BOOTSTRAP).call(abi.encodeWithSelector(BOOTSTRAP.processSacrifice.selector, 1));
-        //stakeStart out of gas
+        require(successProcess);
+        //setup router proxy liquidity
 
         hevm.warp(block.timestamp + clampBetween(_day, 7, 255) * 1 days);
 
         (bool successClaim,) =
             user.proxy(address(BOOTSTRAP), abi.encodeWithSelector(BOOTSTRAP.claimSacrifice.selector));
 
-        //needs fix - condition is claim == false
         assert (successClaim == false);
     }
 
