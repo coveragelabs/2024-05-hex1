@@ -3,6 +3,7 @@ pragma solidity 0.8.20;
 
 // libraries
 import {PropertiesAsserts} from "../../lib/properties/contracts/util/PropertiesHelper.sol";
+import "../../lib/properties/contracts/util/Hevm.sol";
 
 // utils
 import {User} from "./utils/User.sol";
@@ -10,6 +11,7 @@ import {User} from "./utils/User.sol";
 // protocol contracts
 import {HexOneToken} from "../../src/HexOneToken.sol";
 import {HexOnePoolManager} from "../../src/HexOnePoolManager.sol";
+import {HexOnePool} from "../../src/HexOnePool.sol";
 
 // wraps
 import {HexitTokenWrap} from "./wraps/HexitTokenWrap.sol";

@@ -11,15 +11,15 @@ contract PoolHandler is Base {
     // ---------------------- Initial State --------------------------
 
     constructor() {
-        POOL = HexOnePool(manager.pools(1));
+        POOL = HexOnePool(MANAGER.pools(1));
 
         for (uint256 i; i < NUMBER_OF_USERS; ++i) {
             User user = users[i];
 
-            hevm.prank(address(bootstrap));
-            hexit.mint(address(user), INITIAL_MINT);
+            hevm.prank(address(BOOTSTRAP));
+            HEXIT.mintAdmin(address(user), INITIAL_MINT);
 
-            user.approve(address(hexit), address(POOL));
+            user.approve(address(HEXIT), address(POOL));
         }
     }
 
