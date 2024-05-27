@@ -20,7 +20,7 @@ contract VaultHandler is Base {
 
     // helpers
     mapping(User => uint256[]) internal stakes;
-    mapping(User => mapping(uint256 => bool)) internal status;
+    mapping(uint256 => bool) internal status;
     uint256 internal ids;
 
     // ---------------------- Initial State --------------------------
@@ -36,6 +36,7 @@ contract VaultHandler is Base {
 
             // user approves vault to spend tokens
             users[i].approve(address(HEX_TOKEN), address(VAULT));
+            users[i].approve(address(HEX1), address(VAULT));
 
             // user approves router to spend tokens
             users[i].approve(address(HEX_TOKEN), address(ROUTER));
@@ -82,7 +83,7 @@ contract VaultHandler is Base {
 
         uint256 id = abi.decode(data, (uint256));
         stakes[user].push(id);
-        status[user][id] = true;
+        status[id] = true;
         ids++;
 
         uint256 balanceAfter = HEX_TOKEN.balanceOf(address(user));
@@ -94,7 +95,7 @@ contract VaultHandler is Base {
         User user = users[_user % users.length];
 
         _id = stakes[user][_id % stakes[user].length];
-        require(status[user][_id], "id already burned");
+        require(status[_id], "id already burned");
 
         (,,,,, uint16 end) = VAULT.stakes(_id);
         require(VAULT.currentDay() >= end, "stake mature");
@@ -108,7 +109,7 @@ contract VaultHandler is Base {
 
         (uint256 hexAmountClaimed, uint256 hdrnAmountClaimed) = abi.decode(data, (uint256, uint256));
 
-        status[user][_id] = false;
+        status[_id] = false;
 
         uint256 hexBalanceAfter = HEX_TOKEN.balanceOf(address(user));
         uint256 hdrnBalanceAfter = HDRN_TOKEN.balanceOf(address(user));
@@ -121,7 +122,7 @@ contract VaultHandler is Base {
         User user = users[_user % users.length];
 
         _id = _id % ids;
-        require(status[user][_id], "id already burned");
+        require(status[_id], "id already burned");
 
         uint256 hexBalanceBefore = IERC20(HEX_TOKEN).balanceOf(address(user));
         uint256 hdrnBalanceBefore = IERC20(HDRN_TOKEN).balanceOf(address(user));
@@ -132,7 +133,7 @@ contract VaultHandler is Base {
 
         (uint256 hexAmountClaimed, uint256 hdrnAmountClaimed) = abi.decode(data, (uint256, uint256));
 
-        status[user][_id] = false;
+        status[_id] = false;
 
         uint256 hexBalanceAfter = IERC20(HEX_TOKEN).balanceOf(address(user));
         uint256 hdrnBalanceAfter = IERC20(HDRN_TOKEN).balanceOf(address(user));
@@ -145,7 +146,7 @@ contract VaultHandler is Base {
         User user = users[_user % users.length];
 
         _id = stakes[user][_id % stakes[user].length];
-        require(status[user][_id], "id already burned");
+        require(status[_id], "id already burned");
 
         (uint256 debt,,,,,) = VAULT.stakes(_id);
         require(debt > 0, "no debt to repay");
@@ -165,7 +166,7 @@ contract VaultHandler is Base {
         User user = users[_user % users.length];
 
         _id = stakes[user][_id % stakes[user].length];
-        require(status[user][_id], "id already burned");
+        require(status[_id], "id already burned");
 
         uint256 maxBorrowable = VAULT.maxBorrowable(_id);
         require(maxBorrowable > 0, "zero amount can not be borrowed");
@@ -185,12 +186,12 @@ contract VaultHandler is Base {
         User user = users[_user % users.length];
 
         _id = _id % ids;
-        require(status[user][_id], "id already burned");
-
-        require(VAULT.healthRatio(_id) < VAULT.MIN_HEALTH_RATIO(), "stake is healthy");
+        require(status[_id], "id already burned");
 
         (uint256 debt,,,,,) = VAULT.stakes(_id);
         require(debt != 0);
+
+        require(VAULT.healthRatio(_id) < VAULT.MIN_HEALTH_RATIO(), "stake is healthy");
 
         _amount = clampBetween(_amount, debt / 2, debt);
 
@@ -221,7 +222,7 @@ contract VaultHandler is Base {
     function invariant_2(uint256 _user, uint256 _id, uint256 _amount) public {
         User user = users[_user % users.length];
         _id = _id % ids;
-        require(status[user][_id], "id already burned");
+        require(status[_id], "id already burned");
 
         (uint256 debt,,,,,) = VAULT.stakes(_id);
         require(debt == 0, "debt is not zero");
@@ -230,6 +231,10 @@ contract VaultHandler is Base {
             user.proxy(address(VAULT), abi.encodeWithSelector(HexOneVaultHarness.take.selector, _id, _amount));
         assert(!success);
     }
+
+    /*
+
+    @notice BREAKS
 
     /// @dev HDT can only be took if at least 50% of the stake.debt is repaid and the healthRatio is less than MIN_HEALTH_RATIO.
     function invariant_3(uint256 _user, uint256 _id, uint256 _amount) public {
@@ -250,15 +255,57 @@ contract VaultHandler is Base {
         assert(success);
     }
 
-    /*
+    */
 
-    /// @dev Users must only be able to mint more HEX1 with the same HEX collateral if the HEX price in USD increases.
-    function invariant_4() public {}
+    /// @dev Users must only be able to borrow more HEX1 with the same HEX collateral if the HEX price in USD increases.
+    function invariant_4(uint256 _user, uint256 _amount) public {
+        User user = users[_user % users.length];
+        _amount = clampBetween(_amount, HEX_AMOUNT / 100, HEX_AMOUNT / 10);
+
+        FEED.setPrice(address(HEX_TOKEN), address(DAI_TOKEN), HEX_DAI_INIT_PRICE);
+        FEED.setPrice(address(HEX_TOKEN), address(USDC_TOKEN), HEX_USDC_INIT_PRICE);
+        FEED.setPrice(address(HEX_TOKEN), address(USDT_TOKEN), HEX_USDT_INIT_PRICE);
+
+        (bool success, bytes memory data) =
+            user.proxy(address(VAULT), abi.encodeWithSelector(HexOneVaultHarness.deposit.selector, _amount));
+        require(success, "deposit failed");
+
+        uint256 id = abi.decode(data, (uint256));
+        stakes[user].push(id);
+        status[id] = true;
+        ids++;
+
+        uint256 maxBorrowableBefore = VAULT.maxBorrowable(id);
+
+        FEED.setPrice(address(HEX_TOKEN), address(DAI_TOKEN), HEX_DAI_INIT_PRICE * 2);
+        FEED.setPrice(address(HEX_TOKEN), address(USDC_TOKEN), HEX_USDC_INIT_PRICE * 2);
+        FEED.setPrice(address(HEX_TOKEN), address(USDT_TOKEN), HEX_USDT_INIT_PRICE * 2);
+
+        uint256 maxBorrowableAfter = VAULT.maxBorrowable(id);
+
+        assert(maxBorrowableAfter > maxBorrowableBefore);
+    }
 
     /// @dev The number of stake days accrued + stake days estimated must be equal to 5555.
-    function invariant_5() public {}
+    function invariant_5(uint256 _id) public {
+        _id = _id % ids;
+        require(status[_id], "id already burned");
 
-    */
+        (,,,, uint16 start, uint16 end) = VAULT.stakes(_id);
+
+        uint256 currentDay = VAULT.currentDay();
+        uint256 totalDays;
+
+        if (currentDay >= end) {
+            totalDays = end - start;
+        } else {
+            totalDays += currentDay - start;
+            totalDays += end - currentDay;
+        }
+
+        emit LogUint256("total days", totalDays);
+        assert(totalDays == 5555);
+    }
 
     /// @dev If buybackEnabled == true, the depositing fee must always equal 1%.
     function invariant_6(uint256 _user, uint256 _amount) public {
@@ -278,7 +325,7 @@ contract VaultHandler is Base {
 
         ids++;
         stakes[user].push(id);
-        status[user][id] = true;
+        status[id] = true;
 
         assert(realAmount == expectedAmount);
     }
@@ -288,7 +335,7 @@ contract VaultHandler is Base {
         User user = users[_user % users.length];
 
         _id = stakes[user][_id % stakes[user].length];
-        require(status[user][_id], "id already burned");
+        require(status[_id], "id already burned");
 
         (,,,,, uint16 end) = VAULT.stakes(_id);
         require(VAULT.currentDay() < end, "stake not mature");
@@ -296,7 +343,7 @@ contract VaultHandler is Base {
         (bool success,) = user.proxy(address(VAULT), abi.encodeWithSelector(HexOneVaultHarness.withdraw.selector, _id));
         assert(!success);
 
-        status[user][_id] = false;
+        status[_id] = false;
     }
 
     /// @dev Liquidation must never be possible if HDT has not reached stake.end + GRACE_PERIOD.
@@ -304,7 +351,7 @@ contract VaultHandler is Base {
         User user = users[_user % users.length];
 
         _id = _id % ids;
-        require(status[user][_id], "id already burned");
+        require(status[_id], "id already burned");
 
         (,,,,, uint16 end) = VAULT.stakes(_id);
         require(VAULT.currentDay() < end + VAULT.GRACE_PERIOD(), "stake not liquidatable");
@@ -312,22 +359,31 @@ contract VaultHandler is Base {
         (bool success,) = user.proxy(address(VAULT), abi.encodeWithSelector(HexOneVaultHarness.liquidate.selector, _id));
         assert(!success);
 
-        status[user][_id] = false;
+        status[_id] = false;
     }
 
     /// @dev Borrowing must never be possible if HDT has reached stake.end.
-    function invariant_9(uint256 _user, uint256 _id) public {
+    function invariant_9(uint256 _user, uint256 _depositAmount, uint256 _borrowAmount, uint256 _skip) public {
         User user = users[_user % users.length];
+        _depositAmount = clampBetween(_depositAmount, HEX_AMOUNT / 100, HEX_AMOUNT / 10);
 
-        _id = stakes[user][_id % stakes[user].length];
-        require(status[user][_id], "id already burned");
+        (bool success, bytes memory data) =
+            user.proxy(address(VAULT), abi.encodeWithSelector(HexOneVaultHarness.deposit.selector, _depositAmount));
+        require(success, "deposit failed");
 
-        (,,,,, uint16 end) = VAULT.stakes(_id);
-        require(VAULT.currentDay() >= end, "stake mature");
+        uint256 id = abi.decode(data, (uint256));
 
-        (bool success,) = user.proxy(
-            address(VAULT), abi.encodeWithSelector(HexOneVaultHarness.borrow.selector, _id, VAULT.maxBorrowable(_id))
-        );
+        ids++;
+        stakes[user].push(id);
+        status[id] = true;
+
+        _skip = clampBetween(_skip, 5555 days, 7500 days);
+        hevm.warp(block.timestamp + _skip);
+
+        _borrowAmount = clampBetween(_borrowAmount, 1, VAULT.maxBorrowable(id));
+
+        (success,) =
+            user.proxy(address(VAULT), abi.encodeWithSelector(HexOneVaultHarness.borrow.selector, id, _borrowAmount));
         assert(!success);
     }
 
@@ -336,9 +392,9 @@ contract VaultHandler is Base {
         User user = users[_user % users.length];
 
         _id = stakes[user][_id % stakes[user].length];
-        require(status[user][_id], "id already burned");
+        require(status[_id], "id already burned");
 
-        require(_amount > VAULT.maxBorrowable(_id), "amount > max borrowable");
+        require(_amount > VAULT.maxBorrowable(_id), "amount < max borrowable");
 
         (bool success,) =
             user.proxy(address(VAULT), abi.encodeWithSelector(HexOneVaultHarness.borrow.selector, _id, _amount));
@@ -349,33 +405,61 @@ contract VaultHandler is Base {
     function invariant_11(uint256 _user, uint256 _id, uint256 _amount) public {
         User user = users[_user % users.length];
 
-        _id = stakes[user][_id % stakes[user].length];
-        require(status[user][_id], "id already burned");
-
-        require(VAULT.healthRatio(_id) > VAULT.MIN_HEALTH_RATIO(), "health ratio < min health ratio");
-
-        _amount = clampBetween(_amount, 1, VAULT.maxBorrowable(_id));
+        _amount = clampBetween(_amount, HEX_AMOUNT / 100, HEX_AMOUNT / 10);
 
         (bool success, bytes memory data) =
-            user.proxy(address(VAULT), abi.encodeWithSelector(HexOneVaultHarness.borrow.selector, _id, _amount));
-        if (!success) {
-            bytes4 err = abi.decode(data, (bytes4));
-            assert(err == IHexOneVault.HealthRatioTooLow.selector);
-        }
+            user.proxy(address(VAULT), abi.encodeWithSelector(HexOneVaultHarness.deposit.selector, _amount));
+        require(success, "deposit failed");
+
+        uint256 id = abi.decode(data, (uint256));
+
+        ids++;
+        stakes[user].push(id);
+        status[id] = true;
+
+        FEED.setPrice(address(HEX_TOKEN), address(DAI_TOKEN), HEX_DAI_INIT_PRICE / 2);
+        FEED.setPrice(address(HEX_TOKEN), address(USDC_TOKEN), HEX_USDC_INIT_PRICE / 2);
+        FEED.setPrice(address(HEX_TOKEN), address(USDT_TOKEN), HEX_USDT_INIT_PRICE / 2);
+
+        require(VAULT.healthRatio(_id) > VAULT.MIN_HEALTH_RATIO());
+
+        (success, data) = user.proxy(
+            address(VAULT), abi.encodeWithSelector(HexOneVaultHarness.borrow.selector, _id, VAULT.maxBorrowable(_id))
+        );
+        assert(!success);
+
+        FEED.setPrice(address(HEX_TOKEN), address(DAI_TOKEN), HEX_DAI_INIT_PRICE);
+        FEED.setPrice(address(HEX_TOKEN), address(USDC_TOKEN), HEX_USDC_INIT_PRICE);
+        FEED.setPrice(address(HEX_TOKEN), address(USDT_TOKEN), HEX_USDT_INIT_PRICE);
     }
 
-    /// @dev Take must never be possible if HDT has not reached stake.end + GRACE_PERIOD.
-    function invariant_12(uint256 _user, uint256 _id, uint256 _amount) public {
-        User user = users[_user % users.length];
+    /// @dev Take must never be possible if HDT has reached stake.end + GRACE_PERIOD.
+    function invariant_12(uint256 _user1, uint256 _user2, uint256 _depositAmount, uint256 _takeAmount, uint256 _skip)
+        public
+    {
+        User user1 = users[_user1 % users.length];
+        User user2 = users[_user2 % users.length];
 
-        _id = _id % ids;
-        require(status[user][_id], "id already burned");
+        _depositAmount = clampBetween(_depositAmount, HEX_AMOUNT / 100, HEX_AMOUNT / 10);
 
-        (,,,,, uint16 end) = VAULT.stakes(_id);
-        require(VAULT.currentDay() >= end + VAULT.GRACE_PERIOD(), "stake not liquidatable");
+        (bool success, bytes memory data) =
+            user1.proxy(address(VAULT), abi.encodeWithSelector(HexOneVaultHarness.deposit.selector, _depositAmount));
+        require(success, "deposit failed");
 
-        (bool success,) =
-            user.proxy(address(VAULT), abi.encodeWithSelector(HexOneVaultHarness.take.selector, _id, _amount));
+        uint256 id = abi.decode(data, (uint256));
+
+        ids++;
+        stakes[user1].push(id);
+        status[id] = true;
+
+        _skip = clampBetween(_skip, 5555 days + 7 days, 7500 days);
+        hevm.warp(block.timestamp + _skip);
+
+        (uint256 debt,,,,,) = VAULT.stakes(id);
+        _takeAmount = clampBetween(_takeAmount, debt / 2, debt);
+
+        (success,) =
+            user2.proxy(address(VAULT), abi.encodeWithSelector(HexOneVaultHarness.take.selector, id, _takeAmount));
         assert(!success);
     }
 }

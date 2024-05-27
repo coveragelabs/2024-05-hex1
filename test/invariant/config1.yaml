@@ -1,4 +1,5 @@
-maxTimeDelay: 150000000
+maxTimeDelay: 500000000
+maxBlockDelay: 50000000
 
 workers: 10
 seqLen: 10
