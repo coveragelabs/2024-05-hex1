@@ -67,7 +67,7 @@ contract HexOneVaultHarness is ERC721, AccessControl, ReentrancyGuard, IHexOneVa
     /// @dev user => Stake
     mapping(uint256 => Stake) public stakes;
     /// @dev ever incrementing token id of stakes created in the vault.
-    uint256 internal id;
+    uint256 public id;
 
     /// @dev flag that stores if the buyback status.
     bool public buybackEnabled;

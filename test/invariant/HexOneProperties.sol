@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 import "../invariant/Base.sol";
 
-import {hevm} from "../../../lib/properties/contracts/util/Hevm.sol";
+import {hevm} from "../../lib/properties/contracts/util/Hevm.sol";
 
 contract HexOneProperties is Base {
     // amounts
@@ -577,7 +577,7 @@ contract HexOneProperties is Base {
     /// @dev The sum off each HDT stake.debt must always be equal to HEX1 total supply.
     function invariant_1() public {
         uint256 debtSum;
-        for (uint256 i; i < ids; ++i) {
+        for (uint256 i; i < VAULT.id(); ++i) {
             (uint256 debt,,,,,) = VAULT.stakes(i);
             debtSum += debt;
         }
