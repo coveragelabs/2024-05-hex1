@@ -574,7 +574,7 @@ contract HexOneProperties is Base {
 
     // ---------------------- Vault ----------------------—------
 
-    /// @dev The sum off each HDT stake.debt must always be equal to HEX1 total supply.
+    /// @dev The sum of each HDT stake.debt must always be equal to the HEX1 total supply
     function invariant_1() public {
         uint256 debtSum;
         for (uint256 i; i < VAULT.id(); ++i) {
@@ -584,7 +584,7 @@ contract HexOneProperties is Base {
         assertEq(debtSum, HEX1.totalSupply(), "invariant 1 broke");
     }
 
-    /// @dev If an HDT has stake.debt == 0 it can not be took.
+    /// @dev If an HDT has stake.debt == 0 it can not be taken
     function invariant_2(uint256 _user, uint256 _id, uint256 _amount) public {
         User user = users[_user % users.length];
         _id = _id % ids;
@@ -602,7 +602,7 @@ contract HexOneProperties is Base {
 
     @notice BREAKS
 
-    /// @dev HDT can only be took if at least 50% of the stake.debt is repaid and the healthRatio is less than MIN_HEALTH_RATIO.
+    /// @dev HDT can only be taken if at least 50% of the stake.debt is repaid and the healthRatio is less than MIN_HEALTH_RATIO
     function invariant_3(uint256 _user, uint256 _id, uint256 _amount) public {
         User user = users[_user % users.length];
 
@@ -623,7 +623,7 @@ contract HexOneProperties is Base {
 
     */
 
-    /// @dev Users must only be able to borrow more HEX1 with the same HEX collateral if the HEX price in USD increases.
+    /// @dev Users must only be able to borrow more HEX1 with the same HEX collateral if the HEX price in USD increases
     function invariant_4(uint256 _user, uint256 _amount) public {
         User user = users[_user % users.length];
         _amount = clampBetween(_amount, HEX_AMOUNT / 100, HEX_AMOUNT / 10);
@@ -652,7 +652,7 @@ contract HexOneProperties is Base {
         assert(maxBorrowableAfter > maxBorrowableBefore);
     }
 
-    /// @dev The number of stake days accrued + stake days estimated must be equal to 5555.
+    /// @dev The number of accrued stake days + estimated stake days must be equal to 5555
     function invariant_5(uint256 _id) public {
         _id = _id % ids;
         require(status[_id], "id already burned");
@@ -673,7 +673,7 @@ contract HexOneProperties is Base {
         assert(totalDays == 5555);
     }
 
-    /// @dev If buybackEnabled == true, the depositing fee must always equal 1%.
+    /// @dev If buybackEnabled == true, the depositing fee must always equal 1%
     function invariant_6(uint256 _user, uint256 _amount) public {
         User user = users[_user % users.length];
         _amount = clampBetween(_amount, 1, IERC20(HEX_TOKEN).balanceOf(address(user)));
@@ -696,7 +696,7 @@ contract HexOneProperties is Base {
         assert(realAmount == expectedAmount);
     }
 
-    /// @dev Withdraw must never be possible if HDT has not reached stake.end.
+    /// @dev Withdraw must never be possible if HDT has not reached stake.end
     function invariant_7(uint256 _user, uint256 _id) public {
         User user = users[_user % users.length];
 
@@ -712,7 +712,7 @@ contract HexOneProperties is Base {
         status[_id] = false;
     }
 
-    /// @dev Liquidation must never be possible if HDT has not reached stake.end + GRACE_PERIOD.
+    /// @dev Liquidation must never be possible if HDT has not reached stake.end + GRACE_PERIOD
     function invariant_8(uint256 _user, uint256 _id) public {
         User user = users[_user % users.length];
 
@@ -728,7 +728,7 @@ contract HexOneProperties is Base {
         status[_id] = false;
     }
 
-    /// @dev Borrowing must never be possible if HDT has reached stake.end.
+    /// @dev Borrowing must never be possible if HDT has reached stake.end
     function invariant_9(uint256 _user, uint256 _depositAmount, uint256 _borrowAmount, uint256 _skip) public {
         User user = users[_user % users.length];
         _depositAmount = clampBetween(_depositAmount, HEX_AMOUNT / 100, HEX_AMOUNT / 10);
@@ -753,7 +753,7 @@ contract HexOneProperties is Base {
         assert(!success);
     }
 
-    /// @dev Borrowing must never be possible if amount exceeds maxBorrowable().
+    /// @dev Borrowing must never be possible if amount exceeds maxBorrowable()
     function invariant_10(uint256 _user, uint256 _id, uint256 _amount) public {
         User user = users[_user % users.length];
 
@@ -767,7 +767,7 @@ contract HexOneProperties is Base {
         assert(!success);
     }
 
-    /// @dev Borrowing must never be possible if the resulting healthRatio is less than MIN_HEALTH_RATIO.
+    /// @dev Borrowing must never be possible if the resulting healthRatio is less than MIN_HEALTH_RATIO
     function invariant_11(uint256 _user, uint256 _id, uint256 _amount) public {
         User user = users[_user % users.length];
 
@@ -799,7 +799,7 @@ contract HexOneProperties is Base {
         FEED.setPrice(address(HEX_TOKEN), address(USDT_TOKEN), HEX_USDT_INIT_PRICE);
     }
 
-    /// @dev Take must never be possible if HDT has reached stake.end + GRACE_PERIOD.
+    /// @dev Take must never be possible if HDT has reached stake.end + GRACE_PERIOD
     function invariant_12(uint256 _user1, uint256 _user2, uint256 _depositAmount, uint256 _takeAmount, uint256 _skip)
         public
     {
@@ -831,7 +831,7 @@ contract HexOneProperties is Base {
 
     // ---------------------- Pool ----------------------—------
 
-    /// @dev The total HEXIT rewards per second must always be equal to rewardPerToken * totalStaked.
+    /// @dev The total HEXIT rewards per second must always be equal to rewardPerToken * totalStaked
     function invariant_1_pool(uint256 _skipDays) public {
         for (uint256 i; i < NUMBER_OF_USERS; ++i) {
             _claim(users[i]);
@@ -852,7 +852,7 @@ contract HexOneProperties is Base {
         assertEq(totalHexitRewards, expectedHexitRewards, "invariant 1 broke");
     }
 
-    /// @dev User can never unstake more than what he staked, excluding rewards.
+    /// @dev User can never unstake more than what he staked, excluding rewards
     function invariant_2_pool() public {
         for (uint256 i; i < NUMBER_OF_USERS; ++i) {
             User user = users[i];
@@ -864,7 +864,7 @@ contract HexOneProperties is Base {
         }
     }
 
-    /// @dev The total rewards to be distributed to Alice with N deposits of X value must always be equal to Bob with p * N deposits of X / p.
+    /// @dev The total rewards to be distributed to Alice with N deposits of X value must always be equal to Bob with p * N deposits of X / p
     function invariant_3_pool(uint256 _user, uint256 _amount, uint256 _n, uint256 _p, uint256 _skipDays) public {
         User alice = users[_user % users.length];
         User bob = users[(_user + 1) % users.length];
@@ -896,7 +896,7 @@ contract HexOneProperties is Base {
         assertEq(aliceRewards, bobRewards, "invariant 3 broke");
     }
 
-    /// @dev The totalStaked amount must always equal the sum of each user's stakeOf amount.
+    /// @dev The totalStaked amount must always equal the sum of each users' stakeOf amount
     function invariant_4_pool() public {
         uint256 stakeOfSum;
 
