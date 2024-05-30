@@ -1,0 +1,12 @@
+maxTimeDelay: 500000000
+maxBlockDelay: 50000000
+
+workers: 10
+seqLen: 10
+testLimit: 10000
+shrinkLimit: 500
+testMode: assertion
+
+coverage: true
+corpusDir: "corpus"
+coverageFormats: ["txt"]
