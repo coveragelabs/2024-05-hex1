@@ -18,7 +18,7 @@ Coverage reviewed Hex One Protocol smart contracts over the course of a 4 week e
 ### Code Scope Version Control
 - **Review commit hash - [45514b8](https://github.com/HexOneProtocol/hex1-contracts/tree/45514b8a25a24679dffbe99db3e41196c06a2427).**
 
-- **Fix review commit hash - [\<commit hash of the fix review>](link-to-the-commit).**
+- **Fix review commit hash - [38624eb](https://github.com/HexOneProtocol/hex1-contracts/tree/38624eb20288a7ab9e87004d8ca1221274555033).**
 
 ### Scope
 The following smart contracts were within review scope:
